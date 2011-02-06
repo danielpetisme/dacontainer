@@ -13,26 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.danielpetisme.dacontainer;
+package com.github.danielpetisme.dacontainer.annotations.internal;
 
-public interface DaContainer {
+import java.lang.reflect.Member;
 
-	/**
-	 * Bind an a Class (an implementation) with its contract (an interface)
-	 * 
-	 * @param contract
-	 *            minimal set of operations the implementation must have
-	 * @param clazz
-	 *            the implementation
-	 */
-	public void bind(Class<?> contract, Class<?> clazz);
+public interface DaAnnotation {
 
 	/**
-	 * Retrieve an instance for the given contract
+	 * Applying a treatment on the member (Field, Constructor or Method)
 	 * 
-	 * @param contract
-	 *            the needed operations
-	 * @return the instance or null
+	 * @param member
 	 */
-	public <T> T getInstance(Class<?> contract);
+	public <T> void apply(T instance, Member member)
+			throws IllegalArgumentException, IllegalAccessException;
 }

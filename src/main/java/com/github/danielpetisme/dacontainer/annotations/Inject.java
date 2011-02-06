@@ -13,26 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.github.danielpetisme.dacontainer;
+package com.github.danielpetisme.dacontainer.annotations;
 
-public interface DaContainer {
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-	/**
-	 * Bind an a Class (an implementation) with its contract (an interface)
-	 * 
-	 * @param contract
-	 *            minimal set of operations the implementation must have
-	 * @param clazz
-	 *            the implementation
-	 */
-	public void bind(Class<?> contract, Class<?> clazz);
 
-	/**
-	 * Retrieve an instance for the given contract
-	 * 
-	 * @param contract
-	 *            the needed operations
-	 * @return the instance or null
-	 */
-	public <T> T getInstance(Class<?> contract);
+@Target(ElementType.FIELD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface Inject {
+
 }

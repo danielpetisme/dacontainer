@@ -1,3 +1,18 @@
+/**
+ * Copyright (C) 2011 Daniel PETISME <daniel.petisme@gmail.com>
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *         http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.github.danielpetisme.test.dacontainer;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -17,7 +32,7 @@ import org.junit.Test;
 
 import com.github.danielpetisme.dacontainer.DaContainer;
 import com.github.danielpetisme.dacontainer.DaContainerImpl;
-import com.github.danielpetisme.dacontainer.exception.UnboundedInterfaceException;
+import com.github.danielpetisme.dacontainer.annotations.Inject;
 
 public class DaContainerImplTest {
 
@@ -45,30 +60,13 @@ public class DaContainerImplTest {
 		tested.bind(List.class, ArrayList.class);
 		assertTrue(tested.getInstance(List.class) instanceof List);
 
-		// Must throw an IllegalArgumentException
-		// Try to bin a class with something
-		try {
-
-			tested.bind(ArrayList.class, String.class);
-		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage(), is(not(nullValue())));
-		}
-
-		// Must throw an IllegalArgumentException
-		// the implementation is not an implementation of the interface
-		try {
-			tested.bind(Map.class, String.class);
-		} catch (IllegalArgumentException e) {
-			assertThat(e.getMessage(), is(not(nullValue())));
-		}
-		
 		// Must throw a NPE
 		try {
 			tested.bind(null, String.class);
 		} catch (NullPointerException e) {
 			assertThat(e.getMessage(), is(not(nullValue())));
 		}
-		
+
 		// Must throw a NPE
 		try {
 			tested.bind(Map.class, null);
@@ -93,10 +91,29 @@ public class DaContainerImplTest {
 		tested.getInstance(Map.class);
 	}
 
-	@Test(expected = IllegalArgumentException.class)
-	public final void testGetInstanceIllegal() {
-		// must throw an IllegalArgumentException
-		tested.getInstance(ArrayList.class);
+	@Test
+	public final void testInjection() {
+		tested.bind(List.class, ArrayList.class);
+		tested.bind(Client.class, Client.class);
+		Client instance = tested.getInstance(Client.class);
+
+		assertThat(instance.getCollection(), is(not(nullValue())));
+	}
+
+	public static class Client {
+
+		@SuppressWarnings("rawtypes")
+		@Inject
+		private List collection;
+
+		public Client() {
+
+		}
+
+		@SuppressWarnings("rawtypes")
+		public List getCollection() {
+			return collection;
+		}
 	}
 
 }

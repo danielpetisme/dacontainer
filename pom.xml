@@ -13,7 +13,7 @@
 	<developers>
 		<developer>
 			<id>danielpetisme</id>
-			<name>Daniel PETISME</name>
+			<name>Daniel&nbsp;PETISME</name>
 			<email>daniel.petisme@gmail.com</email>
 			<roles>
 				<role>Project Manager</role>
@@ -37,6 +37,13 @@
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
 			<version>r07</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.googlecode.functional-collections</groupId>
+			<artifactId>functional-collections</artifactId>
+			<version>1.1.9</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
@@ -64,8 +71,9 @@
 					<strictCheck>true</strictCheck>
 					<header>src/etc/header.txt</header>
 					<properties>
-						<user.name>Daniel PETISME</user.name>
-						<year>2010</year>
+						<user.firstname>Daniel</user.firstname>
+						<user.lastname>PETISME</user.lastname>
+						<year>2011</year>
 						<email>daniel.petisme@gmail.com</email>
 					</properties>
 					<excludes>
