@@ -18,8 +18,13 @@ package com.github.danielpetisme.dacontainer.annotations.internal;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Member;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -37,25 +42,89 @@ public class InjectImpl implements DaAnnotation {
 	 * @throws IllegalAccessException
 	 * @throws IllegalArgumentException
 	 */
-	public <T> void apply(T instance, Member member)
+	public <T> T apply(T instance, AccessibleObject accessibleObject)
 			throws IllegalArgumentException, IllegalAccessException {
 		checkNotNull(instance);
-		checkNotNull(member);
-		checkArgument(member instanceof Field,
-				"The argument is not an instance of field");
-		if (member instanceof Field) {
-			Field field = (Field) member;
-			apply(instance, field);
+		checkNotNull(accessibleObject);
+		checkArgument(accessibleObject instanceof Field
+				|| accessibleObject instanceof Method,
+				"The argument can not be treated is not a Field, a Method or a Constructor");
+		T injectedInstance = null;
+		if (accessibleObject instanceof Field) {
+			Field field = (Field) accessibleObject;
+			injectedInstance = apply(instance, field);
+		} else if (accessibleObject instanceof Method) {
+			Method method = (Method) accessibleObject;
+			injectedInstance = apply(instance, method);
 		}
+
+		return injectedInstance;
 
 	}
 
-	private <T> void apply(T instance, Field field)
+	private <T> T apply(T instance, Field field)
 			throws IllegalArgumentException, IllegalAccessException {
 		Class<?> type = field.getType();
 		Object dependency = DaContainerImpl.INSTANCE.getInstance(type);
 		field.set(instance, dependency);
 		LOG.log(Level.FINE, "Injecting  {0} on field {1}", new Object[] {
 				dependency, field });
+
+		return instance;
+	}
+
+	private <T> T apply(T instance, Method method)
+			throws IllegalArgumentException, IllegalAccessException {
+		Class<?>[] types = method.getParameterTypes();
+		List<Object> parameters = new ArrayList<Object>();
+		for (Class<?> type : types) {
+			Object dependency = DaContainerImpl.INSTANCE.getInstance(type);
+			checkNotNull(dependency, "No bindind found for {0}",
+					new Object[] { type });
+			parameters.add(dependency);
+		}
+
+		try {
+			method.invoke(instance, parameters.toArray());
+			LOG.log(Level.FINE, "Injecting  {0} on method {1}", new Object[] {
+					parameters.toArray(), method });
+		} catch (InvocationTargetException e) {
+			LOG.log(Level.SEVERE, "Methods injection", e);
+		}
+
+		return instance;
+
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T> T apply(AccessibleObject annotedObject) {
+		T instance = null;
+		if (annotedObject instanceof Constructor<?>) {
+			Constructor<?> constructor = (Constructor<?>) annotedObject;
+			Class<?>[] types = constructor.getParameterTypes();
+			List<Object> parameters = new ArrayList<Object>();
+			for (Class<?> type : types) {
+				Object dependency = DaContainerImpl.INSTANCE.getInstance(type);
+				checkNotNull(dependency, "No bindind found for {0}",
+						new Object[] { type });
+				parameters.add(dependency);
+			}
+
+			try {
+				instance = (T) constructor.newInstance(parameters.toArray());
+				LOG.log(Level.FINE, "Injecting  {0} on constructor {1}",
+						new Object[] { parameters.toArray(), constructor });
+			} catch (IllegalArgumentException e) {
+				LOG.log(Level.SEVERE, "Constructor injection", e);
+			} catch (InstantiationException e) {
+				LOG.log(Level.SEVERE, "Constructor injection", e);
+			} catch (IllegalAccessException e) {
+				LOG.log(Level.SEVERE, "Constructor injection", e);
+			} catch (InvocationTargetException e) {
+				LOG.log(Level.SEVERE, "Constructor injection", e);
+			}
+		}
+
+		return instance;
 	}
 }

@@ -15,15 +15,24 @@
  */
 package com.github.danielpetisme.dacontainer.annotations.internal;
 
-import java.lang.reflect.Member;
+import java.lang.reflect.AccessibleObject;
 
 public interface DaAnnotation {
 
 	/**
-	 * Applying a treatment on the member (Field, Constructor or Method)
+	 * Applying a treatment on a accesible object (Field or Method)
 	 * 
-	 * @param member
+	 * @param annotedObject
+	 *            a FIELD or METHOD
 	 */
-	public <T> void apply(T instance, Member member)
+	public <T> T apply(T instance, AccessibleObject annotedObject)
 			throws IllegalArgumentException, IllegalAccessException;
+
+	/**
+	 * 
+	 * @param annotedObject
+	 *            a CONSTRUCTOR
+	 * @return an instance
+	 */
+	public <T> T apply(AccessibleObject annotedObject);
 }

@@ -28,6 +28,14 @@ public interface DaContainer {
 	public void bind(Class<?> contract, Class<?> clazz);
 
 	/**
+	 * To store a class without interface. Is a shortcut to bind(clazz,clazz);
+	 * 
+	 * @param clazz
+	 */
+
+	public void bind(Class<?> clazz);
+
+	/**
 	 * Retrieve an instance for the given contract
 	 * 
 	 * @param contract

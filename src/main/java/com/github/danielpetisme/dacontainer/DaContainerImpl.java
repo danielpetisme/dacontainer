@@ -19,7 +19,10 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -46,6 +49,20 @@ public class DaContainerImpl implements DaContainer {
 
 	private List<Class<? extends Annotation>> managedAnnotations;
 
+	// Filter the fields to keep only annotated fields.
+	private static final Predicate<AccessibleObject> isAnnotedAccessibleObject = new Predicate<AccessibleObject>() {
+		public boolean apply(AccessibleObject candidateField) {
+			return candidateField.getAnnotations().length > 0;
+		}
+	};
+
+	// Hack to have accessible annotated fields
+	private static final Block<AccessibleObject> setAccessible = new Block<AccessibleObject>() {
+		public void apply(AccessibleObject annotedField) {
+			annotedField.setAccessible(true);
+		}
+	};
+
 	private DaContainerImpl() {
 
 		mapping = new HashMap<Class<?>, Class<?>>();
@@ -66,67 +83,131 @@ public class DaContainerImpl implements DaContainer {
 
 	}
 
+	public void bind(Class<?> clazz) {
+		bind(clazz, clazz);
+
+	}
+
 	@SuppressWarnings("unchecked")
 	public <T> T getInstance(Class<?> contract) {
 		checkNotNull(contract, "The contract cannot be null");
-		checkArgument(mapping.containsKey(contract), "Unbounded interface");
+		checkArgument(mapping.containsKey(contract), "Unbounded interface %s",
+				contract);
 
 		Class<?> clazz = mapping.get(contract);
 
-		T instance = null;
-		try {
-			instance = (T) clazz.newInstance();
-			dependencyInjection(instance);
-		} catch (InstantiationException e) {
-			LOG.log(Level.SEVERE, "Instantiation impossible", e);
-		} catch (IllegalAccessException e) {
-			LOG.log(Level.SEVERE, "Illegal Access", e);
-		}
-		return instance;
-	}
-
-	private <T> void dependencyInjection(final T instance) {
-
-		// Filter the fields to keep only annotated fields.
-		Predicate<Field> predicateAnnotedField = new Predicate<Field>() {
-			public boolean apply(Field candidateField) {
-				return candidateField.getAnnotations().length > 0;
-			}
-		};
-
-		// Hack to have accessible annotated fields
-		Block<Field> setAccessible = new Block<Field>() {
-			public void apply(Field annotedField) {
-				annotedField.setAccessible(true);
-			}
-		};
-
-		// filter annotated fields and set them accessibles
-		Iterable<Field> annotedFields = (Iterable<Field>) FunctionalIterables
-				.make(instance.getClass().getDeclaredFields())
-				.filter(predicateAnnotedField).each(setAccessible);
-
-		// Manage the injection
-		inject(instance, annotedFields);
-
+		return constructorDependencyInjection(clazz);
 	}
 
 	/**
-	 * @param instance
-	 * @param annotedFields
+	 * Search if any depencies have to be injected and construct the object
+	 * 
+	 * @param toConstruct
+	 *            The class to construct
+	 * @return an instance or null
 	 */
-	private <T> void inject(final T instance, Iterable<Field> annotedFields) {
+	@SuppressWarnings("unchecked")
+	private <T> T constructorDependencyInjection(Class<?> toConstruct) {
+		checkNotNull(toConstruct);
+		T instance = null;
+
+		// Search all the constuctor with al least one managed annotation
+		List<Constructor<?>> constructors = FunctionalIterables
+				.make(toConstruct.getConstructors())
+				.filter(new Predicate<Constructor<?>>() {
+
+					public boolean apply(final Constructor<?> constructor) {
+						return FunctionalIterables
+								.make(managedAnnotations)
+								.any(new Predicate<Class<? extends Annotation>>() {
+
+									public boolean apply(
+											Class<? extends Annotation> annotation) {
+										return constructor
+												.isAnnotationPresent(annotation);
+									}
+								});
+					}
+				}).toList();
+
+		// constuctor with DaAnnotation
+		if (constructors.size() > 0) {
+			Constructor<?> constructor = constructors.get(0);
+			for (Class<? extends Annotation> annotation : managedAnnotations) {
+				final Class<? extends Annotation> clazz = annotation;
+
+				if (constructor.isAnnotationPresent(clazz)) {
+					DaAnnotation daAnnotation = getInstance(clazz);
+					instance = daAnnotation.apply(constructor);
+				}
+			}
+		} else {
+			try {
+				instance = (T) toConstruct.newInstance();
+			} catch (InstantiationException e) {
+				LOG.log(Level.SEVERE, "Instantiation impossible", e);
+			} catch (IllegalAccessException e) {
+				LOG.log(Level.SEVERE, "Illegal Access", e);
+			}
+
+		}
+
+		if (instance != null) {
+			// Once we have constructed the object, we inject the members (FIELD
+			// & METHOD)
+			dependencyInjection(instance);
+		}
+
+		return instance;
+	}
+
+	/**
+	 * Inject fields and methods
+	 * 
+	 * @param instance
+	 */
+	private <T> void dependencyInjection(final T instance) {
+		inject(instance, filterFields(instance));
+		inject(instance, filterMethods(instance));
+	}
+
+	private <T> Iterable<Field> filterFields(final T instance) {
+
+		// filter annotated fields and set them accessibles
+		return FunctionalIterables
+				.make(instance.getClass().getDeclaredFields())
+				.filter(isAnnotedAccessibleObject).each(setAccessible);
+	}
+
+	private <T> Iterable<Method> filterMethods(final T instance) {
+
+		// filter annotated fields and set them accessibles
+		return FunctionalIterables
+				.make(instance.getClass().getDeclaredMethods())
+				.filter(isAnnotedAccessibleObject).each(setAccessible);
+	}
+
+	/**
+	 * apply every annotation on the current object
+	 * 
+	 * @param <T>
+	 * @param instance
+	 * @param elements
+	 */
+	private <T> void inject(final T instance,
+			Iterable<? extends AccessibleObject> elements) {
 		for (Class<? extends Annotation> annotation : managedAnnotations) {
 			final Class<? extends Annotation> clazz = annotation;
 
 			// Apply the right treatment respectively to the annotation present
-			FunctionalIterables.make(annotedFields)
-					.filter(new Predicate<Field>() {
-						public boolean apply(Field annotedField) {
-							return annotedField.isAnnotationPresent(clazz);
+			FunctionalIterables.make(elements)
+					.filter(new Predicate<AccessibleObject>() {
+
+						public boolean apply(AccessibleObject object) {
+							return object.isAnnotationPresent(clazz);
 						}
-					}).each(new Block<Field>() {
-						public void apply(Field annotedField) {
+					}).each(new Block<AccessibleObject>() {
+						public void apply(AccessibleObject annotedField) {
 							DaAnnotation annotation = getInstance(clazz);
 							try {
 								annotation.apply(instance, annotedField);

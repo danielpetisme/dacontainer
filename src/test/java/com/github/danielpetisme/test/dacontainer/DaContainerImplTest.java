@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -56,7 +57,7 @@ public class DaContainerImplTest {
 	}
 
 	@Test
-	public final void testRegister() {
+	public final void testBind() {
 		tested.bind(List.class, ArrayList.class);
 		assertTrue(tested.getInstance(List.class) instanceof List);
 
@@ -73,6 +74,9 @@ public class DaContainerImplTest {
 		} catch (NullPointerException e) {
 			assertThat(e.getMessage(), is(not(nullValue())));
 		}
+
+		tested.bind(String.class);
+		assertTrue(tested.getInstance(String.class) instanceof String);
 
 	}
 
@@ -92,28 +96,104 @@ public class DaContainerImplTest {
 	}
 
 	@Test
-	public final void testInjection() {
+	public final void testInjectionField() throws Exception {
 		tested.bind(List.class, ArrayList.class);
-		tested.bind(Client.class, Client.class);
-		Client instance = tested.getInstance(Client.class);
+		tested.bind(Person.class, PersonImplField.class);
 
-		assertThat(instance.getCollection(), is(not(nullValue())));
+		assertTrue(PersonImplField.class.getField("friends")
+				.isAnnotationPresent(Inject.class));
+		Person instance = tested.getInstance(Person.class);
+
+		assertThat(instance.getFriends(), is(not(nullValue())));
 	}
 
-	public static class Client {
+	@Test
+	public final void testInjectionMethod() throws Exception {
+		tested.bind(List.class, ArrayList.class);
+		tested.bind(Person.class, PersonImplMethod.class);
+
+		assertTrue(PersonImplMethod.class.getDeclaredMethod("setFriends",
+				List.class).isAnnotationPresent(Inject.class));
+		Person instance = tested.getInstance(Person.class);
+
+		assertThat(instance.getFriends(), is(not(nullValue())));
+	}
+
+	@Test
+	public final void testInjectionConstructor() throws Exception {
+		tested.bind(List.class, ArrayList.class);
+		tested.bind(Person.class, PersonImplConstructor.class);
+
+		assertTrue(PersonImplConstructor.class.getConstructor(List.class)
+				.isAnnotationPresent(Inject.class));
+		Person instance = tested.getInstance(Person.class);
+
+		assertThat(instance.getFriends(), is(not(nullValue())));
+		assertTrue(instance.getFriends() instanceof List);
+		assertThat(instance.getFriends().size(), is(0));
+	}
+
+	public static interface Person {
+
+		public List getFriends();
+
+		public void setFriends(List friends);
+
+	}
+
+	public static class PersonImplMethod implements Person {
+
+		private List friends;
 
 		@SuppressWarnings("rawtypes")
+		public List getFriends() {
+			return friends;
+		}
+
 		@Inject
-		private List collection;
-
-		public Client() {
-
+		public void setFriends(List friends) {
+			this.friends = friends;
 		}
+	}
+
+	public static class PersonImplField implements Person {
+
+		@Inject
+		public List friends;
 
 		@SuppressWarnings("rawtypes")
-		public List getCollection() {
-			return collection;
+		public List getFriends() {
+			return friends;
 		}
+
+		public void setFriends(List friends) {
+			throw new UnsupportedOperationException("Useless implementation");
+
+		}
+
+	}
+
+	public static class PersonImplConstructor implements Person {
+
+		private List friends;
+
+		@Inject
+		public PersonImplConstructor(List friends) {
+			this.friends = friends;
+		}
+
+		public List getFriends() {
+			return this.friends;
+		}
+
+		public void setFriends(List friends) {
+			throw new UnsupportedOperationException("Useless implementation");
+		}
+
+	}
+
+	public static class Adress {
+
 	}
 
 }
