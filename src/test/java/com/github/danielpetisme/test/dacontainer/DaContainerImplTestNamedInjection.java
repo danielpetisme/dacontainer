@@ -51,6 +51,25 @@ public class DaContainerImplTestNamedInjection {
 		assertThat(os.openTerminal(), is("Foo $>"));
 	}
 
+	@Test
+	public void testNamedInjectionPrimitiveTypes() {
+		tested.bind(H2G2.class);
+		tested.bindConstant("answer", 42);
+
+		H2G2 EarthComputer = tested.getInstance(H2G2.class);
+		assertThat(EarthComputer.getTheAnswer(), is(42));
+	}
+
+	public static class H2G2 {
+
+		@Named("answer")
+		private int theAnswer;
+
+		public int getTheAnswer() {
+			return this.theAnswer;
+		}
+	}
+
 	public static final class Terminal {
 
 		@Named("terminal.prompt")
