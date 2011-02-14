@@ -15,9 +15,6 @@
  */
 package com.github.danielpetisme.dacontainer;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
@@ -31,11 +28,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.github.danielpetisme.dacontainer.annotations.Inject;
+import com.github.danielpetisme.dacontainer.annotations.Named;
 import com.github.danielpetisme.dacontainer.annotations.internal.DaAnnotation;
 import com.github.danielpetisme.dacontainer.annotations.internal.InjectImpl;
+import com.github.danielpetisme.dacontainer.annotations.internal.NamedImpl;
 import com.google.common.base.Predicate;
 import com.googlecode.functionalcollections.Block;
 import com.googlecode.functionalcollections.FunctionalIterables;
+
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 
 public class DaContainerImpl implements DaContainer {
 
@@ -46,6 +48,8 @@ public class DaContainerImpl implements DaContainer {
 	public static DaContainer INSTANCE = new DaContainerImpl();
 
 	private Map<Class<?>, Class<?>> mapping;
+
+	private Map<String, Object> constants;
 
 	private List<Class<? extends Annotation>> managedAnnotations;
 
@@ -68,9 +72,14 @@ public class DaContainerImpl implements DaContainer {
 		mapping = new HashMap<Class<?>, Class<?>>();
 		LOG.log(Level.FINE, "Mapping map created");
 
+		constants = new HashMap<String, Object>();
+		LOG.log(Level.FINE, "Constants map created");
+
 		managedAnnotations = new ArrayList<Class<? extends Annotation>>();
 		managedAnnotations.add(Inject.class);
+		managedAnnotations.add(Named.class);
 		bind(Inject.class, InjectImpl.class);
+		bind(Named.class, NamedImpl.class);
 
 	}
 
@@ -88,7 +97,6 @@ public class DaContainerImpl implements DaContainer {
 
 	}
 
-	@SuppressWarnings("unchecked")
 	public <T> T getInstance(Class<?> contract) {
 		checkNotNull(contract, "The contract cannot be null");
 		checkArgument(mapping.containsKey(contract), "Unbounded interface %s",
@@ -219,6 +227,29 @@ public class DaContainerImpl implements DaContainer {
 						}
 					});
 		}
+	}
+
+	@Override
+	public void bindConstant(String constantName, Object constantValue) {
+		checkNotNull(constantName, "The constantName cannot be null");
+		checkNotNull(constantValue, "The constantValue cannot be null");
+
+		constants.put(constantName, constantValue);
+	}
+
+	public Object getConstant(String constantName) {
+		checkNotNull(constantName, "The constantName cannot be null");
+		Object value = null;
+		if (constantName.contains(constantName)) {
+			value = constants.get(constantName);
+		} else {
+			LOG.log(Level.SEVERE, "No binding founded for constantName : {0}",
+					new Object[] { constantName });
+			throw new IllegalArgumentException(String.format(
+					"No binding founded for constantName : %s", constantName));
+
+		}
+		return value;
 	}
 
 }

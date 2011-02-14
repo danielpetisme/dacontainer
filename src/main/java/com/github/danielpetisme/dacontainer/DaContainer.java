@@ -43,4 +43,8 @@ public interface DaContainer {
 	 * @return the instance or null
 	 */
 	public <T> T getInstance(Class<?> contract);
+
+	public void bindConstant(String constantName, Object constantValue);
+
+	public Object getConstant(String constantName);
 }
