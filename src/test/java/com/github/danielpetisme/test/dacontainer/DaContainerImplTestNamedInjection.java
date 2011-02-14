@@ -60,6 +60,12 @@ public class DaContainerImplTestNamedInjection {
 		assertThat(EarthComputer.getTheAnswer(), is(42));
 	}
 
+	@Test(expected = IllegalArgumentException.class)
+	public void testNamedInjectionUnboundedName() {
+
+		tested.getConstant("Unbounded");
+	}
+
 	public static class H2G2 {
 
 		@Named("answer")

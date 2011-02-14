@@ -239,17 +239,10 @@ public class DaContainerImpl implements DaContainer {
 
 	public Object getConstant(String constantName) {
 		checkNotNull(constantName, "The constantName cannot be null");
+		checkArgument(constants.containsKey(constantName),
+				"No binding founded for constantName : {0}", constantName);
 		Object value = null;
-		if (constantName.contains(constantName)) {
-			value = constants.get(constantName);
-		} else {
-			LOG.log(Level.SEVERE, "No binding founded for constantName : {0}",
-					new Object[] { constantName });
-			throw new IllegalArgumentException(String.format(
-					"No binding founded for constantName : %s", constantName));
-
-		}
+		value = constants.get(constantName);
 		return value;
 	}
-
 }
