@@ -7,7 +7,7 @@ import org.junit.runners.Suite.SuiteClasses;
 @RunWith(Suite.class)
 @SuiteClasses(value = { DaContainerImplTestBasics.class,
 		DaContainerImplTestInjection.class,
-		DaContainerImplTestNamedInjection.class })
+		DaContainerImplTestNamedInjection.class , DaContainerImplTestAnnotationInjection.class})
 		
 public class DaContainerImplTestSuite {
 

@@ -16,6 +16,8 @@
 package com.github.danielpetisme.dacontainer;
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Target;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -27,8 +29,10 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.github.danielpetisme.dacontainer.annotations.AnnotationInjection;
 import com.github.danielpetisme.dacontainer.annotations.Inject;
 import com.github.danielpetisme.dacontainer.annotations.Named;
+import com.github.danielpetisme.dacontainer.annotations.internal.AnnotationInjectionImpl;
 import com.github.danielpetisme.dacontainer.annotations.internal.DaAnnotation;
 import com.github.danielpetisme.dacontainer.annotations.internal.InjectImpl;
 import com.github.danielpetisme.dacontainer.annotations.internal.NamedImpl;
@@ -244,5 +248,20 @@ public class DaContainerImpl implements DaContainer {
 		Object value = null;
 		value = constants.get(constantName);
 		return value;
+	}
+
+	@Override
+	public void bindAnnotation(Class<? extends Annotation> annotation,
+			String value) {
+		checkNotNull(annotation, "The annotation cannot be null");
+		checkNotNull(value, "The value cannot be null");
+		checkArgument(
+				annotation.isAnnotationPresent(AnnotationInjection.class),
+				"The annotation {0} must be annoted with AnnotationInjection",
+				annotation);
+
+		constants.put(annotation.getName(), value);
+		managedAnnotations.add(annotation);
+		bind(annotation, AnnotationInjectionImpl.class);
 	}
 }

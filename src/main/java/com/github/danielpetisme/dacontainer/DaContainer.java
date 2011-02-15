@@ -15,6 +15,8 @@
  */
 package com.github.danielpetisme.dacontainer;
 
+import java.lang.annotation.Annotation;
+
 public interface DaContainer {
 
 	/**
@@ -47,4 +49,7 @@ public interface DaContainer {
 	public void bindConstant(String constantName, Object constantValue);
 
 	public Object getConstant(String constantName);
+
+	public void bindAnnotation(Class<? extends Annotation> annotation,
+			String value);
 }
